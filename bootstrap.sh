@@ -108,12 +108,16 @@ echo "::1 localhost" >> /etc/hosts
 systemctl enable NetworkManager
 
 # Boot loader kernel params (GRUB)
-vim /etc/default/grub
-#TODO # GRUB_CMDLINE_LINUX_DEFAULT="cryptdevice=$main_partition:luks root=/dev/$volume_group_name/root quiet"
+grub_default_config=/etc/default/grub
+grub_cmdline_key=GRUB_CMDLINE_LINUX_DEFAULT
+grub_cmdline_value="cryptdevice=$main_partition:luks root=/dev/$volume_group_name/root quiet"
+sed -c -i "s/\($grub_cmdline_key *= *\).*/\1$grub_cmdline_value/" $grub_default_config
 
 # Initramfs
-vim /etc/mkinitcpio.conf
-#TODO # HOOKS=(base udev autodetect modconf block encrypt lvm2 filesystems keyboard fsck)
+initram_config=/etc/mkinitcpio.conf
+initram_hooks_key=HOOKS
+initram_hooks_value=(base udev autodetect modconf block encrypt lvm2 filesystems keyboard fsck)
+sed -c -i "s/\($initram_hooks_key *= *\).*/\1$initram_hooks_value/" $initram_config
 mkinitcpio -p linux
 echo "Settings successfully applied."
 
