@@ -1,7 +1,12 @@
 #! /bin/bash
 
-echo "Arch bootstrap v1.0"
-echo "           by Rappy"
+echo "                   __       __                __       __                  "
+echo "  ____ ___________/ /_     / /_  ____  ____  / /______/ /__________ _____  "
+echo " / __ `/ ___/ ___/ __ \   / __ \/ __ \/ __ \/ __/ ___/ __/ ___/ __ `/ __ \\"
+echo "/ /_/ / /  / /__/ / / /  / /_/ / /_/ / /_/ / /_(__  ) /_/ /  / /_/ / /_/ / "
+echo "\__,_/_/   \___/_/ /_/  /_.___/\____/\____/\__/____/\__/_/   \__,_/ .___/  "
+echo "                                                                 /_/       "
+echo "                                                  v1 by Rappy"
 echo ""
 
 echo "Loading the configuration file..."
@@ -26,27 +31,29 @@ main_partition=${device}2
 
 
 echo "Creating the paritions..."
-echo cat << EOF | fdisk $device
-d
-g
-n
+# cat << EOF | fdisk $device
+sed -e 's/\s*\([\+0-9a-zA-Z]*\).*/\1/' << EOF |
+g # Create a new empty GPT partition table
+n # Add a new partition (boot)
+  # Partition number (default 1)
+  # First sector (default)
++$boot_partition_size # Last sector
+Y # Confirmation in case any signature already exists on these sectors (if it doesn't, an error message will appear)
+t # Change partition type
+1 # Change partition type to EFI System
+n # Add a new partition (the main one)
 
 
-$boot_partition_size
-t
-1
-n
-
-
-$main_partition_size
-w
++$main_partition_size
+Y # Confirmation in case any signature already exists on these sectors (if it doesn't, an error message will appear)
+w # Write table to disk and exit
 EOF
 echo "Partitions successfully created."
 
 
 echo "Creating the physical & logical volumes..."
 # Create LUKS encrypted container
-cryptsetup -vy luksFormat $main_partition
+cryptsetup -vy --batch-mode luksFormat $main_partition
 
 # Open the container
 cryptsetup open $main_partition luks
