@@ -31,6 +31,7 @@ main_partition=${device}2
 
 
 echo "Creating the paritions..."
+sleep 1
 # cat << EOF | fdisk $device
 sed -e 's/\s*\([\+0-9a-zA-Z]*\).*/\1/' << EOF |
 g # Create a new empty GPT partition table
@@ -52,6 +53,7 @@ echo "Partitions successfully created."
 
 
 echo "Creating the physical & logical volumes..."
+sleep 1
 # Create LUKS encrypted container
 cryptsetup -vy --batch-mode luksFormat $main_partition
 
@@ -59,10 +61,10 @@ cryptsetup -vy --batch-mode luksFormat $main_partition
 cryptsetup open $main_partition luks
 
 # Create a physical volume on top of the opened LUKS container
-pvcreate /dev/mapper/luks
+pvcreate -ffy /dev/mapper/luks
 
 # Create the volume group, adding the previously created physical volume to it
-vgcreate $volume_group_name /dev/mapper/luks
+vgcreate -fy $volume_group_name /dev/mapper/luks
 
 # Create all your logical volumes on the volume group:
 lvcreate -L $swap_size $volume_group_name -n swap
@@ -72,14 +74,16 @@ echo "Physical & logical volumes successfully created."
 
 
 echo "Formatting logical volumes..."
+sleep 1
 mkfs.fat -F32 $boot_partition
-mkfs.ext4 -L root /dev/$volume_group_name/root
-mkfs.ext4 -L home /dev/$volume_group_name/home
+mkfs.ext4 -F -L root /dev/$volume_group_name/root
+mkfs.ext4 -F -L home /dev/$volume_group_name/home
 mkswap /dev/$volume_group_name/swap
 echo "Logical volumes successfully formatted..."
 
 
 echo "Mounting the filesystem..."
+sleep 1
 mount /dev/$volume_group_name/root /mnt
 mkdir /mnt/boot
 mkdir /mnt/home
@@ -94,6 +98,7 @@ echo "Essential packages successfully installed."
 
 
 echo "Applying final settings..."
+sleep 1
 # Fstab
 genfstab -pU /mnt >> /mnt/etc/fstab
 
@@ -130,6 +135,7 @@ echo "Settings successfully applied."
 
 
 echo "Installing the boot loader..."
+sleep 1
 # Install GRUB
 grub-install --efi-directory=/boot --recheck --removable /dev/sdc
 grub-mkconfig -o /boot/grub/grub.cfg
@@ -137,11 +143,13 @@ echo "Bootloader successfully installed."
 
 
 echo "Please set a the root password:"
+sleep 1
 # Set root password
 passwd
 
 
 # Cleanup
+sleep 1
 exit
 umount -R /mnt
 echo "Your Arch installation is done!"
