@@ -2,15 +2,15 @@
 
 echo "                   __       __                __       __                  "
 echo "  ____ ___________/ /_     / /_  ____  ____  / /______/ /__________ _____  "
-echo " / __ `/ ___/ ___/ __ \   / __ \/ __ \/ __ \/ __/ ___/ __/ ___/ __ `/ __ \\"
+echo " / __ \`/ ___/ ___/ __ \   / __ \/ __ \/ __ \/ __/ ___/ __/ ___/ __ \`/ __ \\"
 echo "/ /_/ / /  / /__/ / / /  / /_/ / /_/ / /_/ / /_(__  ) /_/ /  / /_/ / /_/ / "
 echo "\__,_/_/   \___/_/ /_/  /_.___/\____/\____/\__/____/\__/_/   \__,_/ .___/  "
 echo "                                                                 /_/       "
 echo "                                                  v1 by Rappy"
 echo ""
 
-echo "Loading the configuration file..."
-source ./arch-bootstrap.conf
+echo "Loading the Arch configuration file..."
+source ./arch.conf
 
 # Config variables
 echo "Device: $device"
@@ -19,10 +19,7 @@ echo "Boot partition size: $boot_partition_size"
 echo "Swap size: $swap_size"
 echo "Root size: $root_size"
 echo "Home size: $home_size"
-echo "Volume group name: $volume_group_name"
-echo "Local time: $local_time"
-echo "Language: $language"
-echo "Hostname: $hostname"
+echo "General boostrap script path: $general_bootstrap_script"
 echo ""
 
 # Internal variables
@@ -32,8 +29,7 @@ main_partition=${device}2
 
 echo "Creating the paritions..."
 sleep 1
-# cat << EOF | fdisk $device
-sed -e 's/\s*\([\+0-9a-zA-Z]*\).*/\1/' << EOF |
+sed -e 's/\s*\([\+0-9a-zA-Z]*\).*/\1/' << EOF | fdisk $device
 g # Create a new empty GPT partition table
 n # Add a new partition (boot)
   # Partition number (default 1)
@@ -92,7 +88,9 @@ mount $boot_partition /mnt/boot
 swapon /dev/$volume_group_name/swap
 echo "Filesystem successfully mounted."
 
+
 echo "Installing the essential packages..."
+sleep 1
 pacstrap /mnt base base-devel linux linux-firmware grub vim networkmanager go git lvm2 efibootmgr
 echo "Essential packages successfully installed."
 
@@ -102,31 +100,14 @@ sleep 1
 # Fstab
 genfstab -pU /mnt >> /mnt/etc/fstab
 
-# Change root into the new system
-arch-chroot /mnt
-
-# Localization
-ln -sf /usr/share/zoneinfo/$local_time /etc/localtime
-echo $language UTF-8 > /etc/locale.gen
-locale-gen
-echo LANG=$language > /etc/locale.conf
-export LANG=$language
-hwclock -w
-
-# Network configuration
-echo $hostname >> /etc/hostname
-echo "127.0.0.1 localhost" >> /etc/hosts
-echo "::1 localhost" >> /etc/hosts
-systemctl enable NetworkManager
-
 # Boot loader kernel params (GRUB)
-grub_default_config=/etc/default/grub
+grub_default_config=/mnt/etc/default/grub
 grub_cmdline_key=GRUB_CMDLINE_LINUX_DEFAULT
 grub_cmdline_value="cryptdevice=$main_partition:luks root=/dev/$volume_group_name/root quiet"
 sed -c -i "s/\($grub_cmdline_key *= *\).*/\1$grub_cmdline_value/" $grub_default_config
 
 # Initramfs
-initram_config=/etc/mkinitcpio.conf
+initram_config=/mnt/etc/mkinitcpio.conf
 initram_hooks_key=HOOKS
 initram_hooks_value=(base udev autodetect modconf block encrypt lvm2 filesystems keyboard fsck)
 sed -c -i "s/\($initram_hooks_key *= *\).*/\1$initram_hooks_value/" $initram_config
@@ -137,20 +118,19 @@ echo "Settings successfully applied."
 echo "Installing the boot loader..."
 sleep 1
 # Install GRUB
-grub-install --efi-directory=/boot --recheck --removable /dev/sdc
+grub-install --efi-directory=/mnt/boot $boot_partition
 grub-mkconfig -o /boot/grub/grub.cfg
 echo "Bootloader successfully installed."
 
 
-echo "Please set a the root password:"
-sleep 1
-# Set root password
-passwd
+# Change root into the new system
+arch-chroot /mnt
+
+source $general_bootstrap_script
 
 
 # Cleanup
 sleep 1
-exit
 umount -R /mnt
 echo "Your Arch installation is done!"
 echo "Now you can reboot."
