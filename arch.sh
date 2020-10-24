@@ -107,11 +107,12 @@ grub_cmdline_value="cryptdevice=$main_partition:luks root=\/dev\/$volume_group_n
 sed -i -e "s/\($grub_cmdline_key *= *\).*/\1$grub_cmdline_value/" $grub_default_config
 
 # Initramfs
+pacman -S linux
 initram_config=/mnt/etc/mkinitcpio.conf
 initram_hooks_key=HOOKS
-initram_hooks_value=(base udev autodetect modconf block encrypt lvm2 filesystems keyboard fsck)
+initram_hooks_value="(base udev autodetect modconf block encrypt lvm2 filesystems keyboard fsck)"
 sed -i -e "s/\($initram_hooks_key *= *\).*/\1$initram_hooks_value/" $initram_config
-mkinitcpio -p linux
+mkinitcpio -k /mnt/boot/vmlinuz-linux -c /mnt/etc/mkinitcpio.conf -g /mnt/boot/initramfs-linux.img
 echo "Settings successfully applied."
 
 
