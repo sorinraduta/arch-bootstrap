@@ -104,7 +104,7 @@ genfstab -pU /mnt >> /mnt/etc/fstab
 grub_default_config=/mnt/etc/default/grub
 grub_cmdline_key=GRUB_CMDLINE_LINUX_DEFAULT
 grub_cmdline_value="cryptdevice=$main_partition:luks root=/dev/$volume_group_name/root quiet"
-sed -i -e "s~\($grub_cmdline_key *= *\).*~\1$grub_cmdline_value~" $grub_default_config
+sed -i -e "s~\($grub_cmdline_key *= *\).*~\1\"$grub_cmdline_value\"~" $grub_default_config
 
 # Initramfs
 pacman -S linux
@@ -122,13 +122,6 @@ sleep 1
 grub-install --efi-directory=/mnt/boot $boot_partition
 grub-mkconfig -o /boot/grub/grub.cfg
 echo "Bootloader successfully installed."
-
-
-# Change root into the new system
-arch-chroot /mnt
-
-source $general_bootstrap_script
-
 
 # Cleanup
 sleep 1
