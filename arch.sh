@@ -103,14 +103,14 @@ genfstab -pU /mnt >> /mnt/etc/fstab
 # Boot loader kernel params (GRUB)
 grub_default_config=/mnt/etc/default/grub
 grub_cmdline_key=GRUB_CMDLINE_LINUX_DEFAULT
-grub_cmdline_value="cryptdevice=$main_partition:luks root=/dev/$volume_group_name/root quiet"
-sed -i "" -e "s/\($grub_cmdline_key *= *\).*/\1$grub_cmdline_value/" $grub_default_config
+grub_cmdline_value="cryptdevice=$main_partition:luks root=\/dev\/$volume_group_name\/root quiet"
+sed -i -e "s/\($grub_cmdline_key *= *\).*/\1$grub_cmdline_value/" $grub_default_config
 
 # Initramfs
 initram_config=/mnt/etc/mkinitcpio.conf
 initram_hooks_key=HOOKS
 initram_hooks_value=(base udev autodetect modconf block encrypt lvm2 filesystems keyboard fsck)
-sed -i "" -e "s/\($initram_hooks_key *= *\).*/\1$initram_hooks_value/" $initram_config
+sed -i -e "s/\($initram_hooks_key *= *\).*/\1$initram_hooks_value/" $initram_config
 mkinitcpio -p linux
 echo "Settings successfully applied."
 
